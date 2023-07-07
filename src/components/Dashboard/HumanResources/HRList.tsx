@@ -1,41 +1,43 @@
 import { Box, Heading, Badge, ChakraProvider, HStack, Button } from "@chakra-ui/react";
-import { DataGrid } from '@mui/x-data-grid';
-import { useEffect, useState } from "react";
-import { ThemeProvider } from "@mui/material";
-import { chakraTheme, muiTheme } from "@/theme";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiPlusCircle } from "react-icons/fi";
 import ErrorPage from "@/components/ErrorPage";
 import { trpc } from "@/utils/trpc";
 
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles//ag-grid.css';
+import 'ag-grid-community/styles//ag-theme-alpine.css';
+
 export default function HRList() {
     const [users, setUsers] = useState<{row: any[], col: any[]}>({row: [], col: [
-        { field: 'id', headerName: 'ID', width: 70 },
-        { field: 'grade', headerName: 'Grade', width: 70 },
-        { field: 'class', headerName: 'Class', width: 70 },
-        { field: 'englishName', headerName: 'English Name', width: 130 },
-        { field: 'chineseName', headerName: 'Chinese Name', width: 130 },
-        { field: 'accountType', headerName: 'Account Type', width: 130, renderCell: (params: any) => {
+        { field: 'id', name: 'ID', width: 80 },
+        { field: 'grade', name: 'Grade', width: 100 },
+        { field: 'class', name: 'Class', width: 100 },
+        { field: 'englishName', name: 'English Name', width: 180 },
+        { field: 'chineseName', name: 'Chinese Name', width: 180 },
+        { field: 'accountType', name: 'Account Type', cellRenderer: (params: any) => {
             return (
-                <ChakraProvider theme={chakraTheme}>
-                    <Badge colorScheme={params.value.color}>{params.value.name}</Badge>
-                </ChakraProvider>
+                <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
         }},
-        { field: 'roles', headerName: 'Roles', width: 200, renderCell: (params: any) => {
+        { field: 'roles', name: 'Roles', cellRenderer: (params: any) => {
             return (
-                <ChakraProvider theme={chakraTheme}>
-                    {
-                        params.value.map((value: any) => {
-                            return (
-                                <Badge colorScheme={value.color} ml="1">{value.name}</Badge>
-                            )
-                        })
-                    }
-                </ChakraProvider>
+                <>
+                {
+                    params.value.map((value: any) => {
+                        return (
+                            <Badge colorScheme={value.color} ml="1" key={value.name} display="inline">{value.name}</Badge>
+                        )
+                    })
+                }
+                </>
             )
         }},
     ]});
+    const defaultColDef = useMemo(() => ({
+        sortable: true
+    }), []);  
     const [dataStatus, setDataStatus] = useState(1);
     const [error, setError] = useState({} as any);
     const redirect = useNavigate();
@@ -58,29 +60,31 @@ export default function HRList() {
                 }), col: users.col});
             setDataStatus(0);
         }
-    }, [getAllUsersStatus])
+    }, [getAllUsersStatus, getAllUsersQuery, users.col])
 
     return (
         dataStatus != 2 ?
         <Box>
-            <Heading size="lg" mb="4">All Members</Heading>
+            <HStack mb="5">
+                <Heading fontSize="6xl">All Members</Heading>
+            </HStack>
             <HStack mb="4">
                 <Link to="create">
                     <Button leftIcon={<FiPlusCircle />} colorScheme="blue">Add Person</Button>
                 </Link>
             </HStack>
-            <ThemeProvider theme={muiTheme}>
-                <DataGrid
-                    rows={users.row}
-                    columns={users.col}
-                    loading={dataStatus == 1}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    onRowClick={(params) => {
-                        redirect(`/dashboard/human-resources/${params.row.id}/view`)
+            <Box className="ag-theme-alpine" h="500px" w="full">
+                <AgGridReact
+                    rowData={users.row}
+                    columnDefs={users.col}
+                    animateRows={true}
+                    defaultColDef={defaultColDef}
+                    rowStyle={{cursor: "pointer"}}
+                    onCellClicked={(event) => {
+                        redirect(`/dashboard/human-resources/${event.data.id}/view`);
                     }}
                 />
-            </ThemeProvider>
+            </Box>
         </Box> : <ErrorPage code="500" message="Internal Server Error" />
     )
 }

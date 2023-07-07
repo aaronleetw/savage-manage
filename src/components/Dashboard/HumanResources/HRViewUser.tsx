@@ -23,13 +23,13 @@ export default function HRViewUser() {
                 <Divider></Divider>
                 <CardBody>
                     <HStack align="top" gap="3" mb="3">
-                        <Image src='TODO: it is currently a placeholder' fallbackSrc='https://placehold.co/300x400' w={[100,200,200]} h={[133,266,266]} />
+                        <Image src='TODO: it is currently a placeholder' fallbackSrc='https://placehold.co/300x400' w={[100,200,200]} h={[133,266,266]} alt="User image" />
                         <Box w="100%">
                             <HStack gap="1" mb="3">
                                 {
                                     userInfo.roles.map((value: any) => {
                                         return (
-                                            <Badge colorScheme={value.color} fontSize="15">{value.name}</Badge>
+                                            <Badge colorScheme={value.color} fontSize="15" key={value.name}>{value.name}</Badge>
                                         )
                                     })
                                 }

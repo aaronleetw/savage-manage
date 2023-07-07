@@ -1,4 +1,4 @@
-import { Button } from "@chakra-ui/react";
+import { Button, Heading, HStack } from "@chakra-ui/react";
 import FullCalendar from "@fullcalendar/react";
 import interactionPlugin from "@fullcalendar/interaction";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -20,8 +20,11 @@ export default function Calendar() {
 
     return (
         <>
+            <HStack mb="5">
+                <Heading fontSize="6xl">Calendar View</Heading>
+            </HStack>
             <Link to="/dashboard/planner/create">
-                <Button leftIcon={<FiPlusCircle />} colorScheme="blue">Add Event</Button>
+                <Button leftIcon={<FiPlusCircle />} colorScheme="blue" mb="4">Add Event</Button>
             </Link>
             <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}

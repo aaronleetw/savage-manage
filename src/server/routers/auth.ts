@@ -80,7 +80,7 @@ export const authRouter = router({
                 return false;
             }
         }),
-    logout: publicProcedure.mutation(
+    logout: loggedInProcedure.mutation(
         async (opt) => {
             opt.ctx.res.setHeader("Set-Cookie", `token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0;`);
             return true;

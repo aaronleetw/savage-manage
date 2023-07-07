@@ -28,7 +28,7 @@ export default function Index() {
     if (!validQuery.isLoading && validQuery.data === true) {
       router.push("/dashboard/home")
     }
-  }, [validQuery])
+  }, [validQuery, router])
 
   if (validQuery.isLoading) {
     return <PageLoader />
@@ -37,8 +37,8 @@ export default function Index() {
   return (
     <Flex w={"100%"} justify="center" p="40px">
       <VStack spacing={4} maxW="700px" width="100%">
-        <Image src="/logo.png" alt="SavageTumaz Logo" width={200} mb={10} />
-        <Heading textAlign="center" mt={10} mb={10}>SavageManage</Heading>
+        <Image src="/logo.png" alt="SavageTumaz Logo" width={200} />
+        <Heading textAlign="center" mb={4}>SavageManage</Heading>
         { router.query.logout === "true" && <Alert status='info'>
           <AlertIcon />
           You have been signed out

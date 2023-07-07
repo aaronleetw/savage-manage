@@ -1,6 +1,4 @@
 import { extendTheme } from "@chakra-ui/react"
-import { createTheme } from "@mui/material";
-import type {} from '@mui/x-data-grid/themeAugmentation';
 
 const chakraTheme = extendTheme({
   styles: {
@@ -12,13 +10,4 @@ const chakraTheme = extendTheme({
   },
 });
 
-const muiTheme = createTheme({
-  components: {
-    MuiDataGrid: {
-      styleOverrides: {
-      },
-    },
-  },
-})
-
-export { chakraTheme, muiTheme };
+export { chakraTheme };

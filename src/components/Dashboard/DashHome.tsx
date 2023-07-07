@@ -10,7 +10,7 @@ export default function Home() {
         if (sessionQueryStatus === 'success' && sessionQuery) {
             setName(sessionQuery.englishName);
         }
-    }, [sessionQueryStatus])
+    }, [sessionQueryStatus, sessionQuery])
 
     return (
         <>

@@ -75,7 +75,7 @@ model Event {
   useRSVP      Boolean   @default(false)
   rsvp         RSVP[]
   allowedUsers User[]
-  rsvpBefore   DateTime?
+  rsvpBefore   Int? @default(3)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

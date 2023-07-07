@@ -15,7 +15,7 @@ import HumanResourcesWrapper from '@/components/Dashboard/HumanResourcesWrapper'
 import Inventory from '@/components/Dashboard/Inventory'
 import Finances from '@/components/Dashboard/Finances'
 import Settings from '@/components/Dashboard/Settings'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import NotFoundPage from '@/components/NotFoundPage';
 import AddEvent from '@/components/Dashboard/Planner/AddEvent';
 import Calendar from '@/components/Dashboard/Planner/Calendar';
@@ -27,6 +27,7 @@ import PageLoader from '@/components/PageLoader';
 import ErrorPage from '@/components/ErrorPage';
 import { trpc } from '@/utils/trpc';
 import { useRouter } from 'next/router';
+import EditEvent from '@/components/Dashboard/Planner/EditEvent';
 
 const linkItems = [
     { name: 'Home', icon: FiHome, href: '/dashboard/home' },
@@ -51,14 +52,14 @@ export default function Home() {
                 <Badge colorScheme={sessionQuery.accountType?.color}>{sessionQuery.accountType?.name}</Badge>
             </>)
         }
-    }, [sessionQueryStatus])
+    }, [sessionQueryStatus, sessionQuery])
 
 
     useEffect(() => {
         if (validQueryStatus === 'success' && validQuery === false) {
           router.push("/")
         }
-    }, [validQueryStatus])    
+    }, [validQueryStatus, router, validQuery])
 
     return (
         <Router>
@@ -70,6 +71,7 @@ export default function Home() {
                         <Route index element={<Calendar />} />
                         <Route path="create" element={<AddEvent />} />
                         <Route path=":eventId/view" element={<EventView />} />
+                        <Route path=":eventId/edit" element={<EditEvent />} />
                         <Route path="*" element={<NotFoundPage />} />
                     </Route>
                     <Route path="/dashboard/human-resources" element={<HumanResourcesWrapper />}>

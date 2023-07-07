@@ -1,27 +1,42 @@
 import { Formik, Form, Field } from "formik";
-import { FormControl, FormLabel, FormHelperText, Input, FormErrorMessage, Textarea, Stack, StackDivider, Box, Button, Divider, Heading, Card, CardBody, CardHeader, HStack, InputLeftElement, InputGroup, Checkbox, Collapse, Badge, ChakraProvider, Square } from "@chakra-ui/react";
+import { FormControl, FormLabel, FormHelperText, Input, FormErrorMessage, Textarea, Stack, StackDivider, Box, Button, Divider, Heading, Card, CardBody, CardHeader, HStack, InputLeftElement, InputGroup, Checkbox, Collapse, Badge, ChakraProvider, Square, Icon, Text, useToast } from "@chakra-ui/react";
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { useEffect, useMemo, useState } from "react";
 import { chakraTheme } from "@/theme";
-import { Link, useNavigate } from "react-router-dom";
-import { FiArrowLeft } from "react-icons/fi";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { FiArrowLeft, FiCheckCircle, FiHelpCircle, FiSlash, FiXCircle } from "react-icons/fi";
 import { trpc } from "@/utils/trpc";
+import { data } from "autoprefixer";
+import PageLoader from "@/components/PageLoader";
+import { format } from "date-fns";
+import StatusEditor from "./EditEventStatusSelect";
 
-export default function AddEvent() {
-    const [users, setUsers] = useState<{row: any[], col: any[]}>({row: [], col: [
-        { field: 'id', name: 'ID', width: 100, headerCheckboxSelection: true, checkboxSelection: true, },
-        { field: 'grade', name: 'Grade', width: 100 },
-        { field: 'class', name: 'Class', width: 100 },
-        { field: 'englishName', name: 'English Name', width: 180 },
-        { field: 'chineseName', name: 'Chinese Name', width: 180 },
-        { field: 'accountType', name: 'Account Type', cellRenderer: (params: any) => {
+export default function EditEvent() {
+    const { eventId } = useParams();
+    const toast = useToast();
+
+    const { data: getAllUsersQuery, status: getAllUsersStatus, refetch: userRefetch, isRefetching: userIsRefetching } = trpc.user.all.useQuery();
+    const { data: event, status: eventStatus, refetch: eventRefetch, isRefetching: eventIsRefetching } = trpc.planner.get.useQuery({
+        id: parseInt(eventId as string),
+    })
+    const adminEditRsvpMutation = trpc.planner.adminEditRsvp.useMutation();
+    const editEventMutation = trpc.planner.edit.useMutation();
+
+    const [rsvp, setRsvp] = useState<{row: any[], col: any[]}>({row: [], col: [
+        { field: 'id', headerName: 'RSVP ID', width: 90 },
+        { field: 'uid', headerName: 'User ID', width: 90 },
+        { field: 'grade', headerName: 'Grade', width: 100 },
+        { field: 'class', headerName: 'Class', width: 100 },
+        { field: 'englishName', headerName: 'English Name', width: 180 },
+        { field: 'chineseName', headerName: 'Chinese Name', width: 180 },
+        { field: 'accountType', headerName: 'Account Type', cellRenderer: (params: any) => {
             return (
                 <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
         }},
-        { field: 'roles', name: 'Roles', cellRenderer: (params: any) => {
+        { field: 'roles', headerName: 'Roles', cellRenderer: (params: any) => {
             return (
                 <>
                     {
@@ -34,65 +49,128 @@ export default function AddEvent() {
                 </>
             )
         }},
-    ]});
-    const createEvent = trpc.planner.create.useMutation();
-
-    const { data: getAllUsersQuery, status: getAllUsersStatus } = trpc.user.all.useQuery();
-    useEffect(() => {
-        if (getAllUsersStatus == "success") {
-            setUsers({
-                row: getAllUsersQuery?.map((user) => {
-                    return {
-                        id: user.id,
-                        grade: user.grade,
-                        class: user.class,
-                        chineseName: user.chineseName,
-                        englishName: user.englishName,
-                        accountType: user.accountType,
-                        roles: user.roles
-                    }
-                }), col: users.col});
+        { field: 'status', headerName: 'Status', width: 200, cellRenderer: (params: any) => {
+            return (
+                <HStack>
+                    <Icon
+                        as={params.value == 2 ? FiCheckCircle : (params.value == 1 ? FiXCircle : (params.value == 0 ? FiHelpCircle : FiSlash))}
+                        color={params.value == 2 ? "green.500" : (params.value == 1 ? "red.500" : (params.value == 0 ? "yellow.500" : "red.500"))}
+                        fontSize="2xl"
+                        mr="1"
+                    />
+                    <Text>
+                        {params.value == 2 ? "Will Attend" : (params.value == 1 ? "Will Not Attend" : (params.value == 0 ? "Not Responded Yet" : "Not Allowed"))}
+                    </Text>
+                </HStack>
+            )},
+            cellEditor: StatusEditor,
+            cellEditorPopup: true,
+            editable: true,
+            singleClickEdit: true,
+            cellStyle: {cursor: 'pointer'},
         }
-    }, [getAllUsersStatus, getAllUsersQuery, users.col])
+    ]});
+
+
+    useEffect(() => {
+        if (eventStatus !== 'success' || getAllUsersStatus !== 'success') return;
+        console.log(event?.rsvp)
+        const rsvpData = event?.rsvp?.map((item) => {
+            return {
+                id: item.id,
+                uid: item.user.id,
+                grade: item.user.grade,
+                class: item.user.class,
+                englishName: item.user.englishName,
+                chineseName: item.user.chineseName,
+                accountType: item.user.accountType,
+                roles: item.user.roles,
+                status: item.confirmed ? 2 : 1
+            }
+        })
+        event?.allowedUsers?.forEach((item) => {
+            if (rsvpData?.find((rsvpItem) => rsvpItem.uid === item.id)) return;
+            rsvpData?.push({
+                id: -1,
+                uid: item.id, 
+                grade: item.grade,
+                class: item.class,
+                englishName: item.englishName,
+                chineseName: item.chineseName,
+                accountType: item.accountType,
+                roles: item.roles,
+                status: 0
+            })
+        })
+        getAllUsersQuery.forEach((item) => {
+            if (rsvpData?.find((rsvpItem) => rsvpItem.uid === item.id)) return;
+            rsvpData?.push({
+                id: -1,
+                uid: item.id,
+                grade: item.grade,
+                class: item.class,
+                englishName: item.englishName,
+                chineseName: item.chineseName,
+                accountType: item.accountType,
+                roles: item.roles,
+                status: -1
+            })
+        })
+        setRsvp({row: rsvpData as any, col: rsvp.col});
+    }, [eventStatus, getAllUsersStatus, userIsRefetching, eventIsRefetching, event?.allowedUsers, event?.rsvp, rsvp.col])
 
     const redirect = useNavigate();
 
+    if (eventStatus === "loading" || eventStatus === "error") {
+        return (
+            <PageLoader></PageLoader>
+        )
+    }
+
     return (
     <>
-        <Link to="/dashboard/planner">
-            <Button leftIcon={<FiArrowLeft />} size="sm" mb="3">Back to Calendar View</Button>
+        <Link to={`/dashboard/planner/${eventId}/view`}>
+            <Button leftIcon={<FiArrowLeft />} size="sm" mb="3">Back to Event View</Button>
         </Link>
         <Card mb="5">
-            <CardHeader><Heading fontSize="2xl">Add Event</Heading></CardHeader>
+            <CardHeader><Heading fontSize="2xl">Edit Event: {event?.name}</Heading></CardHeader>
             <Divider />
             <CardBody>
                 <Formik
                     initialValues={{
-                        name: "",
-                        description: "",
-                        start: "",
-                        end: "",
-                        color: "blue",
-                        useAttendance: false,
-                        attendanceTimeout: 15,
-                        useRSVP: false,
-                        allowedUsers: [],
-                        confirmedRSVP: [],
-                        rsvpBefore: 3
+                        id: parseInt(eventId as string),
+                        name: event?.name,
+                        description: event?.description,
+                        start: event?.startAt.toString(),
+                        end: event?.endAt.toString(),
+                        color: event?.color,
+                        useAttendance: event?.useAttendance,
+                        attendanceTimeout: event?.attendanceTimeout,
+                        useRSVP: event?.useRSVP,
+                        rsvpBefore: event?.rsvpBefore,
                     }}
                     onSubmit={(values, actions) => {
-                        createEvent.mutate(values, {
+                        // @ts-ignore
+                        editEventMutation.mutate(values, {
                             onSuccess: () => {
                                 actions.resetForm();
-                                redirect("/dashboard/planner");
+                                redirect(`/dashboard/planner/${eventId}/view`);
                             },
                             onError: (err) => {
-                                console.log(err);
+                                toast({
+                                    title: "Error",
+                                    description: err.message,
+                                    status: "error",
+                                    duration: 5000,
+                                    isClosable: true,
+                                })
                             },
                             onSettled: () => {
                                 actions.setSubmitting(false);
                             }
-                        });
+                        })
+                        console.log(values)
+                        actions.setSubmitting(false);
                     }}
                 >
                     {({isSubmitting, handleSubmit, errors, touched, resetForm, values, setFieldValue}) => (
@@ -139,32 +217,28 @@ export default function AddEvent() {
                                                 name="start"
                                                 type="text"
                                                 validate={(value: string) => {
-                                                    let error;
-                                                    if (value.length <= 0) {
-                                                        error = "You must enter a start date/time";
+                                                    let error = "";
+                                                    let date = new Date(value);
+                                                    if (date.toString() === "Invalid Date") {
+                                                        error = "Invalid date/time";
                                                     }
-                                                    value.split(',').map((val: string) => {
-                                                        let date = new Date(val);
-                                                        if (date.toString() === "Invalid Date") {
-                                                            error = "Invalid date/time";
-                                                        }
-                                                    })
                                                     return error;
                                                 }}
                                             />
                                             <FormErrorMessage>{errors.start}</FormErrorMessage>
                                         </FormControl>
                                         <FormControl isInvalid={!!errors.end && touched.end} isRequired>
-                                            <FormLabel htmlFor="text">Elapsed Time (HH:MM)</FormLabel>
+                                            <FormLabel htmlFor="text">End Time</FormLabel>
                                             <Field
                                                 as={Input}
                                                 id="end"
                                                 name="end"
                                                 type="text"
                                                 validate={(value: string) => {
-                                                    let error;
-                                                    if (!/^([0-9]+):([0-9]+)$/.test(value)) {
-                                                        error = "Invalid time";
+                                                    let error = "";
+                                                    let date = new Date(value);
+                                                    if (date.toString() === "Invalid Date") {
+                                                        error = "Invalid date/time";
                                                     }
                                                     return error;
                                                 }}
@@ -253,26 +327,6 @@ export default function AddEvent() {
                                         <FormErrorMessage>{errors.useRSVP}</FormErrorMessage>
                                     </FormControl>
                                     <Collapse in={values.useRSVP}>
-                                        <FormLabel>Users allowed to RSVP</FormLabel>
-                                        <Box className="ag-theme-alpine" h="300px" w="full">
-                                            <AgGridReact
-                                                rowData={users.row}
-                                                columnDefs={users.col}
-                                                animateRows={true}
-                                                rowSelection="multiple"
-                                                defaultColDef={useMemo(() => ({
-                                                    sortable: true
-                                                }), [])}
-                                                suppressRowClickSelection={true}
-                                                onSelectionChanged={(event) => {
-                                                    let selectedData = event.api.getSelectedRows().map((row: any) => {
-                                                        return row.id;
-                                                    });
-                                                    setFieldValue("allowedUsers", selectedData);
-                                                    return null;
-                                                }}
-                                            />
-                                        </Box>
                                         <FormControl isInvalid={!!errors.rsvpBefore && touched.rsvpBefore} mt="3">
                                             <FormLabel htmlFor="text">RSVP Before</FormLabel>
                                             <Field
@@ -295,36 +349,60 @@ export default function AddEvent() {
                                 </Box>
                                 <Box>
                                     <FormControl>
-                                        <FormLabel>Confirmed Users</FormLabel>
+                                        <FormLabel><Heading as="h3" fontSize="2xl">Attending Users</Heading></FormLabel>
                                         <Box className="ag-theme-alpine" h="300px" w="full">
                                             <AgGridReact
-                                                rowData={users.row}
-                                                columnDefs={users.col}
+                                                rowData={rsvp.row}
+                                                columnDefs={rsvp.col}
                                                 animateRows={true}
-                                                rowSelection="multiple"
                                                 defaultColDef={useMemo(() => ({
                                                     sortable: true
                                                 }), [])}
                                                 suppressRowClickSelection={true}
-                                                onSelectionChanged={(event) => {
-                                                    let selectedData = event.api.getSelectedRows().map((row: any) => {
-                                                        return row.id;
-                                                    });
-                                                    setFieldValue("confirmedRSVP", selectedData);
-                                                    console.log(selectedData)
-                                                    return null;
+                                                stopEditingWhenCellsLoseFocus={true}
+                                                onCellEditingStopped={(event) => {
+                                                    if (event.valueChanged) {
+                                                        adminEditRsvpMutation.mutate({
+                                                            eventId: parseInt(eventId as string),
+                                                            userId: event.data.uid,
+                                                            status: event.newValue
+                                                        }, {
+                                                            onSuccess: () => {
+                                                                toast({
+                                                                    title: "Success",
+                                                                    description: `RSVP status updated for ${event.data.englishName}`,
+                                                                    status: "success",
+                                                                    duration: 5000,
+                                                                    isClosable: true,
+                                                                })
+                                                            },
+                                                            onError: (error) => {
+                                                                toast({
+                                                                    title: "Error",
+                                                                    description: error.message,
+                                                                    status: "error",
+                                                                    duration: 5000,
+                                                                    isClosable: true,
+                                                                })
+                                                            },
+                                                            onSettled: async () => {
+                                                                await eventRefetch();
+                                                                await userRefetch();
+                                                            }
+                                                        })
+                                                    }
                                                 }}
                                             />
                                         </Box>
-                                        <FormHelperText>Users who are already confirmed to attend the event.</FormHelperText>
+                                        <FormHelperText>Click on any cell in the Status column to modify records.</FormHelperText>
                                     </FormControl>
                                 </Box>
                                 <HStack spacing="3">
                                     <Button type="submit" colorScheme="blue" isLoading={isSubmitting}>
-                                        Add Event
+                                        Edit Event
                                     </Button>
                                     <Button type="button" colorScheme="red" isLoading={isSubmitting} onClick={() => {
-                                        return redirect("/dashboard/planner")
+                                        return redirect(`/dashboard/planner/${eventId}/view`)
                                     }}>Cancel</Button>
                                 </HStack>
                             </Stack>
