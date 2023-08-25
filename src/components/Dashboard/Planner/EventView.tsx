@@ -15,8 +15,8 @@ export default function EventView() {
     const navigate = useNavigate();
     
     const [rsvp, setRsvp] = useState<{row: any[], col: any[]}>({row: [], col: [
-        { field: 'id', headerName: 'RSVP ID', width: "100" },
-        { field: 'uid', headerName: 'User ID', width: "100" },
+        { field: 'id', headerName: 'RSVP ID', width: 100 },
+        { field: 'uid', headerName: 'User ID', width: 100 },
         { field: 'grade', headerName: 'Grade', width: 100 },
         { field: 'class', headerName: 'Class', width: 100 },
         { field: 'englishName', headerName: 'English Name', width: 180 },
@@ -25,6 +25,10 @@ export default function EventView() {
             return (
                     <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
+        }, width: 130, comparator: (valueA: any, valueB: any) => {
+            if (valueA.name === valueB.name) return 0;
+            if (valueA.name < valueB.name) return -1;
+            if (valueA.name > valueB.name) return 1;
         }},
         { field: 'roles', headerName: 'Roles', cellRenderer: (params: any) => {
             return (
@@ -38,7 +42,7 @@ export default function EventView() {
                     }
                 </>
             )
-        }},
+        }, comparator: (valueA: any, valueB: any) => valueA.length - valueB.length},
         { field: 'status', headerName: 'Status', width: 200, cellRenderer: (params: any) => {
             return (
                 <HStack>
@@ -53,7 +57,7 @@ export default function EventView() {
                     </Text>
                 </HStack>
             )
-        }}
+        }, comparator: (valueA: any, valueB: any) => valueA - valueB, sort: "desc" }
     ]});
 
     const { data: event, status: eventStatus } = trpc.planner.get.useQuery({
@@ -162,7 +166,7 @@ export default function EventView() {
                     </AlertDialogHeader>
 
                     <AlertDialogBody>
-                    Are you sure? You can't undo this action afterwards.
+                    Are you sure? You can&apos;t undo this action afterwards.
                     </AlertDialogBody>
 
                     <AlertDialogFooter>

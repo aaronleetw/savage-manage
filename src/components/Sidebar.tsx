@@ -31,10 +31,11 @@ import { useRouter } from 'next/router';
 import { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { trpc } from '@/utils/trpc';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function SidebarWithHeader({ children, linkItems=[], name, roles }: 
                                             { children: ReactNode,
-                                                linkItems: Array<{name: string, icon: any, href: string}>, name:string, roles:ReactNode }) {
+                                                linkItems: Array<{name: string, icon: any, href: string, show: boolean}>, name:string, roles:ReactNode }) {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const location = useLocation();
 
@@ -68,7 +69,7 @@ export default function SidebarWithHeader({ children, linkItems=[], name, roles 
 
   
 const SidebarContent = ({ onClose, linkItems, display }: 
-        { onClose: () => void, linkItems: Array<{name: string, icon: any, href: string}>, display: any }) => {
+        { onClose: () => void, linkItems: Array<{name: string, icon: any, href: string, show: boolean}>, display: any }) => {
     return (
         <Box
             transition="3s ease"
@@ -89,15 +90,17 @@ const SidebarContent = ({ onClose, linkItems, display }:
                     <CloseButton display={{ base: 'flex', md: 'none' }} onClick={onClose} />
                 </Flex>
             </HStack>
-            {linkItems.map((link) => (
-                <NavLink to={link.href} key={link.name}>
-                    {({ isActive, isPending }) => (
-                        <NavItem icon={link.icon} isActive={isActive} isPending={isPending}>
-                            {link.name}
-                        </NavItem>
-                    )}
-                </NavLink>
-            ))}
+            {linkItems.map((link) => {
+                if (link.show == false) return <Box key={link.name}></Box>
+                return (
+                    <NavLink to={link.href} key={link.name}>
+                        {({ isActive, isPending }) => (
+                            <NavItem icon={link.icon} isActive={isActive} isPending={isPending}>
+                                {link.name}
+                            </NavItem>
+                        )}
+                    </NavLink>
+            )})}
         </Box>
     );
 };
@@ -135,6 +138,7 @@ const NavItem = ({ icon, children, isActive, isPending, ...rest }: { icon:any, c
 const MobileNav = ({ onOpen, name, roles, pageTitle, linkItems }: { onOpen:()=>void, name:string, roles:ReactNode, pageTitle: string, linkItems: any[] }) => {
     const router = useRouter()
     const logoutMutation = trpc.auth.logout.useMutation();
+    const queryClient = useQueryClient();
 
     return (
         <Box w="full" position="fixed" zIndex="999">
@@ -211,6 +215,7 @@ const MobileNav = ({ onOpen, name, roles, pageTitle, linkItems }: { onOpen:()=>v
                                 <MenuDivider />
                                 <MenuItem onClick={async () => {
                                     await logoutMutation.mutateAsync();
+                                    queryClient.clear();
                                     router.push('/?logout=true');
                                 }}>Sign out</MenuItem>
                             </MenuList>

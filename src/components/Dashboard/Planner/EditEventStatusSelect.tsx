@@ -3,26 +3,17 @@ import { ICellEditorParams } from "ag-grid-community";
 import { forwardRef, memo, useEffect, useImperativeHandle, useState, useMemo } from "react";
 import { FiCheckCircle, FiHelpCircle, FiSlash, FiTrash, FiXCircle } from "react-icons/fi";
 
-const StatusRenderer = memo((props: ICellEditorParams) => {
-    const imageForMood = (mood: any) =>
-      'https://www.ag-grid.com/example-assets/smileys/' +
-      (mood === 'Happy' ? 'happy.png' : 'sad.png');
-  
-    const mood = useMemo(() => imageForMood(props.value), [props.value]);
-  
-    return <img width="20px" src={mood} />;
-  });
-  
 const StatusEditor = memo(
     forwardRef((props: ICellEditorParams, ref) => {
     //   const isHappy = (value: string) => value === 'Happy';
   
     //   const [happy, setHappy] = useState(isHappy(props.value));
     const [done, setDone] = useState(false);
+    const { stopEditing } = props;
   
     useEffect(() => {
-        if (done) props.stopEditing();
-    }, [done]);
+        if (done) stopEditing();
+    }, [done, stopEditing]);
     const [status, setStatus] = useState(props.value);
     const happy = true;
   

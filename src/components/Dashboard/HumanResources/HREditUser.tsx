@@ -1,66 +1,71 @@
 import { Formik, Form, Field } from "formik";
-import { FormControl, FormLabel, FormHelperText, Input, FormErrorMessage, Textarea, Stack, StackDivider, Box, Button, Divider, Heading, Card, CardBody, CardHeader, HStack, InputLeftElement, InputGroup, Checkbox, Collapse, Badge, ChakraProvider, Square, InputRightElement, Select, useToast } from "@chakra-ui/react";
+import { FormControl, FormLabel, FormHelperText, Input, FormErrorMessage, Textarea, Stack, StackDivider, Box, Button, Divider, Heading, Card, CardBody, CardHeader, HStack, InputLeftElement, InputGroup, Checkbox, Collapse, Badge, ChakraProvider, Square, Icon, Text, useToast } from "@chakra-ui/react";
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { FC, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { chakraTheme } from "@/theme";
-import { Link, useNavigate } from "react-router-dom";
-import { FiArrowLeft } from "react-icons/fi";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { FiArrowLeft, FiCheckCircle, FiHelpCircle, FiSlash, FiXCircle } from "react-icons/fi";
 import { trpc } from "@/utils/trpc";
-import { ZCreateUser } from "@/utils/types";
+import { data } from "autoprefixer";
+import PageLoader from "@/components/PageLoader";
+import { format } from "date-fns";
 import { toFormikValidationSchema } from "zod-formik-adapter";
-import { MultiSelect, MultiSelectProps, useMultiSelect } from 'chakra-multiselect'
+import { ZEditUser } from "@/utils/types";
+import { MultiSelect } from "chakra-multiselect";
 
-export default function HRCreateUser() {
+export default function HREditUser() {
+    const { userId } = useParams();
 
-    const redirect = useNavigate();
+    const editUser = trpc.user.edit.useMutation();
 
-    const [showPassword, setShowPassword] = useState(true);
-
-    const toast = useToast();
+    const { data: userInfo, status: userInfoStatus } = trpc.user.get.useQuery({ id: parseInt(userId as string) });
 
     const {data: roles} = trpc.user.getRoles.useQuery();
     const {data: accountTypes} = trpc.user.getAccountTypes.useQuery();
 
-    const createUser = trpc.user.create.useMutation();
+    const toast = useToast();
+    const navigate = useNavigate();
+
+    if (userInfoStatus == "loading") return <PageLoader />
 
     return (
     <>
-        <Link to="/dashboard/human-resources">
-            <Button leftIcon={<FiArrowLeft />} size="sm" mb="3">Back to List View</Button>
+        <Link to={`/dashboard/human-resources/${userId}/view`}>
+            <Button leftIcon={<FiArrowLeft />} size="sm" mb="3">Back to User View</Button>
         </Link>
         <Card mb="5" maxWidth="900px">
-            <CardHeader><Heading fontSize="2xl">Create User</Heading></CardHeader>
+            <CardHeader><Heading fontSize="2xl">Edit {userInfo?.englishName} [{userInfo?.chineseName}]</Heading></CardHeader>
             <Divider />
             <CardBody>
                 <Formik
                     initialValues={{
-                        grade: NaN,
-                        class: "HO",
-                        studentId: "",
-                        password: Math.random().toString(36).slice(-8),
-                        number: NaN,
-                        chineseName: "",
-                        englishName: "",
-                        email: "",
-                        roles: [],
-                        accountType: "",
-                        sendEmail: true,
+                        id: userInfo?.id,
+                        grade: userInfo?.grade,
+                        class: userInfo?.class,
+                        studentId: userInfo?.studentId,
+                        number: userInfo?.number,
+                        chineseName: userInfo?.chineseName,
+                        englishName: userInfo?.englishName,
+                        email: userInfo?.email,
+                        roles: userInfo?.roles.map((role) => role.name) || [],
+                        accountType: userInfo?.accountType?.name || "",
+                        sendEmail: false,
                     }}
-                    validationSchema={toFormikValidationSchema(ZCreateUser)}
+                    validationSchema={toFormikValidationSchema(ZEditUser)}
                     onSubmit={(values, actions) => {
-                        const v = ZCreateUser.parse(values)
-                        createUser.mutate(v, {
+                        const v = ZEditUser.parse(values)
+                        editUser.mutate(v, {
                             onSuccess: () => {
                                 toast({
                                     title: "Success",
-                                    description: "User created successfully",
+                                    description: "User edited successfully",
                                     status: "success",
                                     duration: 9000,
                                     isClosable: true,
                                 });
-                                redirect('/dashboard/human-resources')
+                                navigate(`/dashboard/human-resources/${userId}/view`)
                             },
                             onError: (error) => {
                                 toast({
@@ -187,47 +192,23 @@ export default function HRCreateUser() {
                                     </FormControl>
                                 </HStack>
                                 <Box>
-                                    <FormControl isInvalid={!!ctx.errors.password && ctx.touched.password} isRequired mb="3">
-                                        <FormLabel htmlFor="text">Password</FormLabel>
-                                        <InputGroup>
-                                            <Field
-                                                as={Input}
-                                                id="password"
-                                                name="password"
-                                                type={showPassword ? "text" : "password"}
-                                            />
-                                            <InputRightElement width='10.5rem'>
-                                                <HStack>
-                                                    <Button h='1.75rem' size='sm' onClick={() => {
-                                                        setShowPassword(!showPassword)}
-                                                    }>
-                                                    {showPassword ? 'Hide' : 'Show'}
-                                                    </Button>
-                                                    <Button h='1.75rem' size='sm' onClick={() => {
-                                                        ctx.setFieldValue("password", Math.random().toString(36).slice(-8))
-                                                    }}>Generate</Button>
-                                                </HStack>
-                                            </InputRightElement>
-                                        </InputGroup>
-                                        <FormErrorMessage>{ctx.errors.password}</FormErrorMessage>  
-                                    </FormControl>
                                     <FormControl isInvalid={!!ctx.errors.sendEmail && ctx.touched.sendEmail} mb="3">
                                         <Field
                                             as={Checkbox}
                                             id="sendEmail"
                                             name="sendEmail"
                                             isChecked={ctx.values.sendEmail}
-                                        >Send creation email to user?</Field>
-                                        <FormHelperText>Check this if you want to send a creation email to the user, including their password.</FormHelperText>
+                                        >Send edit email to user?</Field>
+                                        <FormHelperText>Check this if you want to send a edit email to the user, notifying them that their information has been changed.</FormHelperText>
                                         <FormErrorMessage>{ctx.errors.sendEmail}</FormErrorMessage>
                                     </FormControl>
                                 </Box>
                                 <HStack spacing="3">
                                     <Button type="submit" colorScheme="blue" isLoading={ctx.isSubmitting}>
-                                        Create User
+                                        Edit User
                                     </Button>
                                     <Button type="button" colorScheme="red" isLoading={ctx.isSubmitting} onClick={() => {
-                                        return redirect("/dashboard/planner")
+                                        return navigate(`/dashboard/human-resources/${userId}/view`)
                                     }}>Cancel</Button>
                                 </HStack>
                             </Stack>

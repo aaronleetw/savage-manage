@@ -28,15 +28,9 @@ import ErrorPage from '@/components/ErrorPage';
 import { trpc } from '@/utils/trpc';
 import { useRouter } from 'next/router';
 import EditEvent from '@/components/Dashboard/Planner/EditEvent';
-
-const linkItems = [
-    { name: 'Home', icon: FiHome, href: '/dashboard/home' },
-    { name: 'Planner', icon: FiCalendar, href: '/dashboard/planner' },
-    { name: 'Human Resources', icon: FiUsers, href: '/dashboard/human-resources' },
-    { name: 'Inventory', icon: FiBox, href: '/dashboard/inventory' },
-    { name: 'Finances', icon: FiDollarSign, href: '/dashboard/finances' },
-    { name: 'Settings', icon: FiSettings, href: '/dashboard/settings' },
-];
+import HREditUser from '@/components/Dashboard/HumanResources/HREditUser';
+import HRRoles from '@/components/Dashboard/HumanResources/HRRoles';
+import { linkItems, publicLinkItems } from '@/utils/link_items';
 
 export default function Home() {
     const [name, setName] = useState('');
@@ -44,6 +38,31 @@ export default function Home() {
     const router = useRouter();
     const { data: validQuery, status: validQueryStatus} = trpc.auth.isValid.useQuery();
     const { data: sessionQuery, status: sessionQueryStatus } = trpc.auth.getSession.useQuery();
+    const { data: allowedItems, status: allowedItemsStatus } = trpc.permissions.getSidebarItems.useQuery();
+
+    const [sidebarItems, setSidebarItems] = useState(publicLinkItems.map((item) => {
+        return {
+            ...item,
+            show: false
+        }
+    }))
+
+    useEffect(() => {
+        if (allowedItemsStatus === 'success') {
+            setSidebarItems(sidebarItems.map((item) => {
+                if (allowedItems.includes(item.name)) {
+                    return {
+                        name: item.name,
+                        icon: item.icon,
+                        href: item.href,
+                        show: true
+                    }
+                } else {
+                    return item
+                }
+            }))
+        }
+    }, [allowedItemsStatus, setSidebarItems])
 
     useEffect(() => {
         if (sessionQueryStatus === 'success' && sessionQuery) {
@@ -64,7 +83,7 @@ export default function Home() {
     return (
         <Router>
             <Box>
-            <SidebarWithHeader linkItems={linkItems} name={name} roles={role}>
+            <SidebarWithHeader linkItems={sidebarItems} name={name} roles={role}>
                 <Routes>
                     <Route path="/dashboard/home" element={<DashHome />} />
                     <Route path="/dashboard/planner" element={<PlannerWrapper />}>
@@ -77,6 +96,8 @@ export default function Home() {
                     <Route path="/dashboard/human-resources" element={<HumanResourcesWrapper />}>
                         <Route index element={<HRList />} />
                         <Route path=":userId/view" element={<HRViewUser />} />
+                        <Route path=":userId/edit" element={<HREditUser />} />
+                        <Route path="roles" element={<HRRoles />} />
                         <Route path="create" element={<HRCreateUser />} />
                         <Route path="*" element={<NotFoundPage />} />
                     </Route>

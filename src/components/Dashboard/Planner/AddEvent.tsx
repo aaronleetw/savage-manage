@@ -11,17 +11,21 @@ import { trpc } from "@/utils/trpc";
 
 export default function AddEvent() {
     const [users, setUsers] = useState<{row: any[], col: any[]}>({row: [], col: [
-        { field: 'id', name: 'ID', width: 100, headerCheckboxSelection: true, checkboxSelection: true, },
-        { field: 'grade', name: 'Grade', width: 100 },
-        { field: 'class', name: 'Class', width: 100 },
-        { field: 'englishName', name: 'English Name', width: 180 },
-        { field: 'chineseName', name: 'Chinese Name', width: 180 },
-        { field: 'accountType', name: 'Account Type', cellRenderer: (params: any) => {
+        { field: 'id', headerName: 'ID', width: 100, headerCheckboxSelection: true, checkboxSelection: true, sort: "asc" },
+        { field: 'grade', headerName: 'Grade', width: 100 },
+        { field: 'class', headerName: 'Class', width: 100 },
+        { field: 'englishName', headerName: 'English Name', width: 180 },
+        { field: 'chineseName', headerName: 'Chinese Name', width: 180 },
+        { field: 'accountType', headerName: 'Account Type', cellRenderer: (params: any) => {
             return (
                 <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
+        }, width: 130, comparator: (valueA: any, valueB: any) => {
+            if (valueA.name === valueB.name) return 0;
+            if (valueA.name < valueB.name) return -1;
+            if (valueA.name > valueB.name) return 1;
         }},
-        { field: 'roles', name: 'Roles', cellRenderer: (params: any) => {
+        { field: 'roles', headerName: 'Roles', cellRenderer: (params: any) => {
             return (
                 <>
                     {
@@ -33,8 +37,11 @@ export default function AddEvent() {
                     }
                 </>
             )
-        }},
+        }, comparator: (valueA: any, valueB: any) => valueA.length - valueB.length},
     ]});
+    const sortable = useMemo(() => ({
+        sortable: true
+    }), []);
     const createEvent = trpc.planner.create.useMutation();
 
     const { data: getAllUsersQuery, status: getAllUsersStatus } = trpc.user.all.useQuery();
@@ -155,7 +162,7 @@ export default function AddEvent() {
                                             <FormErrorMessage>{errors.start}</FormErrorMessage>
                                         </FormControl>
                                         <FormControl isInvalid={!!errors.end && touched.end} isRequired>
-                                            <FormLabel htmlFor="text">Elapsed Time (HH:MM)</FormLabel>
+                                            <FormLabel htmlFor="text">Event Length (HH:MM)</FormLabel>
                                             <Field
                                                 as={Input}
                                                 id="end"
@@ -260,9 +267,7 @@ export default function AddEvent() {
                                                 columnDefs={users.col}
                                                 animateRows={true}
                                                 rowSelection="multiple"
-                                                defaultColDef={useMemo(() => ({
-                                                    sortable: true
-                                                }), [])}
+                                                defaultColDef={sortable}
                                                 suppressRowClickSelection={true}
                                                 onSelectionChanged={(event) => {
                                                     let selectedData = event.api.getSelectedRows().map((row: any) => {
@@ -302,9 +307,7 @@ export default function AddEvent() {
                                                 columnDefs={users.col}
                                                 animateRows={true}
                                                 rowSelection="multiple"
-                                                defaultColDef={useMemo(() => ({
-                                                    sortable: true
-                                                }), [])}
+                                                defaultColDef={sortable}
                                                 suppressRowClickSelection={true}
                                                 onSelectionChanged={(event) => {
                                                     let selectedData = event.api.getSelectedRows().map((row: any) => {

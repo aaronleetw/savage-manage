@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "edev": "email dev"
   },
   "dependencies": {
     "@babel/core": "^7.0.0-0",
@@ -30,12 +31,14 @@
     "ag-grid-react": "^30.0.3",
     "autoprefixer": "10.4.14",
     "bcrypt": "^5.1.0",
+    "chakra-multiselect": "^0.4.5",
     "date-fns": "^2.30.0",
     "eslint": "8.39.0",
     "eslint-config-next": "13.3.1",
     "formik": "^2.2.9",
     "framer-motion": "^10.12.4",
     "jsonwebtoken": "^9.0.0",
+    "minio": "^7.1.1",
     "next": "13.3.1",
     "next-transpile-modules": "^10.0.0",
     "postcss": "8.4.23",
@@ -44,11 +47,13 @@
     "react-dom": "18.2.0",
     "react-icons": "^4.8.0",
     "react-router-dom": "^6.11.1",
+    "resend": "^0.16.0",
     "sort-by": "^1.2.0",
     "superjson": "^1.12.3",
     "tailwindcss": "3.3.2",
     "typescript": "^5.0.4",
-    "zod": "^3.21.4"
+    "zod": "^3.21.4",
+    "zod-formik-adapter": "^1.2.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",

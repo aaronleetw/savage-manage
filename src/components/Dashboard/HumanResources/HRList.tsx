@@ -1,7 +1,7 @@
 import { Box, Heading, Badge, ChakraProvider, HStack, Button } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiPlusCircle } from "react-icons/fi";
+import { FiPlusCircle, FiUsers } from "react-icons/fi";
 import ErrorPage from "@/components/ErrorPage";
 import { trpc } from "@/utils/trpc";
 
@@ -11,17 +11,22 @@ import 'ag-grid-community/styles//ag-theme-alpine.css';
 
 export default function HRList() {
     const [users, setUsers] = useState<{row: any[], col: any[]}>({row: [], col: [
-        { field: 'id', name: 'ID', width: 80 },
-        { field: 'grade', name: 'Grade', width: 100 },
-        { field: 'class', name: 'Class', width: 100 },
-        { field: 'englishName', name: 'English Name', width: 180 },
-        { field: 'chineseName', name: 'Chinese Name', width: 180 },
-        { field: 'accountType', name: 'Account Type', cellRenderer: (params: any) => {
+        { field: 'id', headerName: 'ID', width: 80 },
+        { field: 'grade', headerName: 'Grade', width: 110, sort: "asc" },
+        { field: 'class', headerName: 'Class', width: 110, sort: "asc" },
+        { field: 'number', headerName: 'Num', width: 110, sort: "asc" },
+        { field: 'englishName', headerName: 'English Name', width: 180 },
+        { field: 'chineseName', headerName: 'Chinese Name', width: 180 },
+        { field: 'accountType', headerName: 'Account Type', cellRenderer: (params: any) => {
             return (
                 <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
+        }, width: 130, comparator: (valueA: any, valueB: any) => {
+            if (valueA.name === valueB.name) return 0;
+            if (valueA.name < valueB.name) return -1;
+            if (valueA.name > valueB.name) return 1;
         }},
-        { field: 'roles', name: 'Roles', cellRenderer: (params: any) => {
+        { field: 'roles', headerName: 'Roles', cellRenderer: (params: any) => {
             return (
                 <>
                 {
@@ -33,6 +38,10 @@ export default function HRList() {
                 }
                 </>
             )
+        }, comparator: (valueA: any, valueB: any) => {
+            const a = valueA.length == 0 ? Number.MAX_SAFE_INTEGER : valueA[0].priority;
+            const b = valueB.length == 0 ? Number.MAX_SAFE_INTEGER : valueB[0].priority;
+            return a-b;
         }},
     ]});
     const defaultColDef = useMemo(() => ({
@@ -52,6 +61,7 @@ export default function HRList() {
                         id: user.id,
                         grade: user.grade,
                         class: user.class,
+                        number: user.number,
                         chineseName: user.chineseName,
                         englishName: user.englishName,
                         accountType: user.accountType,
@@ -71,6 +81,9 @@ export default function HRList() {
             <HStack mb="4">
                 <Link to="create">
                     <Button leftIcon={<FiPlusCircle />} colorScheme="blue">Add Person</Button>
+                </Link>
+                <Link to="roles">
+                    <Button leftIcon={<FiUsers />} colorScheme="blackAlpha">Roles and Account Types</Button>
                 </Link>
             </HStack>
             <Box className="ag-theme-alpine" h="500px" w="full">

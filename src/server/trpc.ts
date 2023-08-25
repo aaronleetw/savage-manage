@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { permissions } from '@/utils/permissions';
 import { initTRPC, TRPCError } from '@trpc/server';
 import SuperJSON from 'superjson';
 import { Context } from './context';
@@ -26,6 +26,8 @@ const hasPermission = (permission: string) => {
     if (!ctx.session) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Please log in" });
     }
+    if (!Object.keys(permissions).includes(permission))
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Contact your administrator. [1001]" });
     for (const role in ctx.session?.user?.roles) {
       const data = await ctx.prisma.$queryRawUnsafe<any>(
         `SELECT "${permission}" FROM roles WHERE name='${ctx.session.user.roles[role].name}'`)
@@ -35,6 +37,27 @@ const hasPermission = (permission: string) => {
     }
     throw new TRPCError({ code: "UNAUTHORIZED", message: "You do not have permission to do this" });
   })
+}
+
+export const hasPermissionInProcedure = async (permission: string, ctx: Context) => {
+  if (permission === "public") return true;
+  if (!Object.keys(permissions).includes(permission)) return false;
+  for (const role in ctx.session?.user?.roles) {
+      const data = await ctx.prisma.$queryRawUnsafe<any>(
+          `SELECT "${permission}" FROM roles WHERE name='${ctx.session!.user.roles[parseInt(role)].name}'`)
+      if (data[0][permission]) {
+          return true;
+      }
+  }
+  return false;
+}
+
+export const fillPermissions = (fill: any) => {
+  const filled: { [key:string]: typeof fill } = {};
+  for (const permission in permissions) {
+    filled[permission] = fill;
+  }
+  return filled;
 }
 
 export const loggedInProcedure = publicProcedure.use(isValid);

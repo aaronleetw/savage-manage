@@ -35,6 +35,10 @@ export default function EditEvent() {
             return (
                 <Badge colorScheme={params.value.color} display="inline">{params.value.name}</Badge>
             )
+        }, width: 130, comparator: (valueA: any, valueB: any) => {
+            if (valueA.name === valueB.name) return 0;
+            if (valueA.name < valueB.name) return -1;
+            if (valueA.name > valueB.name) return 1;
         }},
         { field: 'roles', headerName: 'Roles', cellRenderer: (params: any) => {
             return (
@@ -48,7 +52,7 @@ export default function EditEvent() {
                     }
                 </>
             )
-        }},
+        }, comparator: (valueA: any, valueB: any) => valueA.length - valueB.length},
         { field: 'status', headerName: 'Status', width: 200, cellRenderer: (params: any) => {
             return (
                 <HStack>
@@ -68,8 +72,13 @@ export default function EditEvent() {
             editable: true,
             singleClickEdit: true,
             cellStyle: {cursor: 'pointer'},
+            sort: "desc",
+            comparator: (valueA: any, valueB: any) => valueA - valueB
         }
     ]});
+    const sortable = useMemo(() => ({
+        sortable: true
+    }), []);
 
 
     useEffect(() => {
@@ -117,7 +126,7 @@ export default function EditEvent() {
             })
         })
         setRsvp({row: rsvpData as any, col: rsvp.col});
-    }, [eventStatus, getAllUsersStatus, userIsRefetching, eventIsRefetching, event?.allowedUsers, event?.rsvp, rsvp.col])
+    }, [eventStatus, getAllUsersStatus, userIsRefetching, eventIsRefetching, getAllUsersQuery, event?.allowedUsers, event?.rsvp, rsvp.col])
 
     const redirect = useNavigate();
 
@@ -355,9 +364,7 @@ export default function EditEvent() {
                                                 rowData={rsvp.row}
                                                 columnDefs={rsvp.col}
                                                 animateRows={true}
-                                                defaultColDef={useMemo(() => ({
-                                                    sortable: true
-                                                }), [])}
+                                                defaultColDef={sortable}
                                                 suppressRowClickSelection={true}
                                                 stopEditingWhenCellsLoseFocus={true}
                                                 onCellEditingStopped={(event) => {
